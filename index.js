@@ -1,11 +1,16 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cookieParser=require("cookie-parser");
+
 const route = require("./src/routes/user.route");
 const dbConnection = require("./src/config/db");
 const app = express();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Parsing middleware for JSON data
+app.use(bodyParser.json({limit:"16kb"}));
+app.use(bodyParser.urlencoded({ extended: true ,limit:"16kb"}));
+app.use(cookieParser());
+
 
 const baseUserURL = "/api/v1/user";
 app.use(baseUserURL, route);

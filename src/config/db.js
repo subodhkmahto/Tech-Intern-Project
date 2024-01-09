@@ -1,14 +1,14 @@
-const mongoose=require("mongoose");
+const mongoose = require("mongoose");
 
-const url="mongodb://127.0.0.1:27017/OSHMPROJECT";
+const url = "mongodb://127.0.0.1:27017/OSHMPROJECT";
 
-const dbConnection = async () =>{
+const dbConnection = async () => {
+    try {
+        await mongoose.connect(url);
+        console.log(`Database connection successful: ${mongoose.connection.host}`);
+    } catch (error) {
+        console.error("Database connection error:", error.message);
+    }
+};
 
- mongoose.connect(url)
-                      .then((db)=>{
-                         console.log(`Databse is connection succesfull and ${mongoose.connection.host}`)})
-                      .catch((error)=>(console.error(error)));
-
-}
-
-module.exports=dbConnection;
+module.exports = dbConnection;
