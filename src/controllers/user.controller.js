@@ -1,7 +1,8 @@
 const User = require("../models/user.model");
 
+const jwt=require("jsonwebtoken");
 
-const generateAccessAndRefreshTokens = async (req,res, userId) => {
+const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId);
         const accessToken = user.generateAccessToken();
@@ -11,12 +12,10 @@ const generateAccessAndRefreshTokens = async (req,res, userId) => {
         await user.save({ validateBeforeSave: false });
 
         return { accessToken, refreshToken };
-
     } catch (error) {
-      return   res.status(404).json({message:"Something went wrong while generating tokens"});
+        throw new Error("Something went wrong while generating tokens");
     }
 };
-
 
 const registerUser = async (req, res) => {
     const { username, email, fullname, password } = req.body;
@@ -56,7 +55,6 @@ const registerUser = async (req, res) => {
     }
 };
 
-
 const loginUser=async (req,res) => {
     //req body=>data
     //username or eamil
@@ -65,7 +63,7 @@ const loginUser=async (req,res) => {
     // access and refreshtoken
     //send cookie
 
-    if (!username || !email) {
+    if (!(username || email)) {
         return res.status(400).json({ message: "Username or email is required" });
     }
 
@@ -125,9 +123,43 @@ const loggedOutUser = async (req, res) => {
     }
 };
 
+const refreshAccessToken = async (req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
+    if (!incomingRefreshToken) {
+        return res.status(401).json({ message: 'Unauthorized request' });
+    }
 
-module.exports = { registerUser , loginUser ,loggedOutUser};
+    try {
+        const decodedToken = jwt.verify(incomingRefreshToken, 'OSHMTECH');
+        const user = await User.findById(decodedToken?._id);
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid refresh token' });
+        }
+
+        if (incomingRefreshToken !== user.refreshToken) {
+            return res.status(401).json({ message: 'Refresh token is expired or used' });
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        };
+
+        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+        res.status(200)
+            .cookie('accessToken', accessToken, options)
+            .cookie('newRefreshToken', newRefreshToken, options)
+            .json({ message: 'Access token refreshed', accessToken, refreshToken: newRefreshToken });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error refreshing access token', error: error.message });
+    }
+};
+
+module.exports = { registerUser , loginUser ,loggedOutUser,refreshAccessToken};
 
 
 // const User = require("../models/user.model");
